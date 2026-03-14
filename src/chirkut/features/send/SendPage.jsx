@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp, startAt, endAt } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { C, LETTER_TEMPLATES, LETTER_FONTS } from "../../constants";
 import { db } from "../../firebase";
 import { getLetterTexture } from "../../letterTheme";
@@ -383,54 +383,22 @@ export default function SendPage({ currentUsername, presetRecipient, darkMode })
   const [err, setErr] = useState("");
   const [templateId, setTpl] = useState("classic");
   const [fontId, setFont] = useState("handwriting");
-  const [recipientSearch, setRecipientSearch] = useState((presetRecipient || "").toLowerCase());
   const [selectedRecipient, setSelectedRecipient] = useState((presetRecipient || "").toLowerCase());
-  const [isRecipientFocused, setIsRecipientFocused] = useState(false);
-  const [recipientSuggestions, setRecipientSuggestions] = useState([]);
 
   const tpl = LETTER_TEMPLATES.find((t) => t.id === templateId) || LETTER_TEMPLATES[0];
   const fnt = LETTER_FONTS.find((f) => f.id === fontId) || LETTER_FONTS[0];
   const showMarginLines = !NO_MARGIN_TEMPLATES.has(tpl.id);
   const letterTexture = getLetterTexture(tpl.id);
 
-  const normalizedQuery = recipientSearch.trim().toLowerCase();
-  const showRecipientSuggestions = (isRecipientFocused || normalizedQuery.length > 0) && recipientSuggestions.length > 0;
-
   useEffect(() => {
     if (!presetRecipient) return;
     const next = presetRecipient.trim().toLowerCase();
-    setRecipientSearch(next);
     setSelectedRecipient(next);
   }, [presetRecipient]);
 
-  useEffect(() => {
-    if (!normalizedQuery) {
-      setRecipientSuggestions([]);
-      return;
-    }
-    const handle = setTimeout(async () => {
-      try {
-        const q = query(
-          collection(db, "users"),
-          orderBy("username"),
-          startAt(normalizedQuery),
-          endAt(`${normalizedQuery}\uf8ff`),
-          limit(8)
-        );
-        const snap = await getDocs(q);
-        const names = snap.docs.map((docSnap) => docSnap.data().username).filter(Boolean);
-        const filtered = currentUsername ? names.filter((name) => name !== currentUsername) : names;
-        setRecipientSuggestions(filtered);
-      } catch {
-        setRecipientSuggestions([]);
-      }
-    }, 220);
-    return () => clearTimeout(handle);
-  }, [normalizedQuery, currentUsername]);
-
   const send = async () => {
-    const target = (selectedRecipient || normalizedQuery).trim().toLowerCase();
-    if (!target) return setErr("Search and select a recipient name first");
+    const target = (selectedRecipient || "").trim().toLowerCase();
+    if (!target) return setErr("Recipient not specified");
     if (currentUsername && target === currentUsername) return setErr("You can't send a letter to yourself");
     if (!msg.trim()) return setErr("Write something first");
     if (msg.length > 500) return setErr("Keep it under 500 characters");
@@ -555,71 +523,11 @@ export default function SendPage({ currentUsername, presetRecipient, darkMode })
             </p>
           </div>
 
-          <div style={{ position: "relative", maxWidth: 520, margin: "0 auto", width: "100%" }}>
-            <input
-              value={recipientSearch}
-              onChange={(e) => {
-                const next = e.target.value;
-                setRecipientSearch(next);
-                setSelectedRecipient("");
-              }}
-              onFocus={() => setIsRecipientFocused(true)}
-              onBlur={() => setTimeout(() => setIsRecipientFocused(false), 100)}
-              placeholder="Search recipient..."
-              style={{
-                width: "100%",
-                background: darkMode ? "rgba(255,255,255,0.05)" : C.paper,
-                border: `1.5px solid ${darkMode ? "rgba(255,255,255,0.12)" : C.kraft}`,
-                borderRadius: 999,
-                padding: "clamp(10px,2.6vw,12px) 16px",
-                fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-                fontSize: 14,
-                color: darkMode ? "#EDE0D4" : C.accent,
-                outline: "none",
-              }}
-            />
-            {showRecipientSuggestions && (
-              <div
-                className="scroll-row"
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  marginTop: 8,
-                  overflowX: "auto",
-                  paddingBottom: 2,
-                  WebkitOverflowScrolling: "touch",
-                  scrollbarWidth: "none",
-                }}
-              >
-                {recipientSuggestions.map((name) => (
-                  <button
-                    key={name}
-                    onMouseDown={() => {
-                      setSelectedRecipient(name);
-                      setRecipientSearch(name);
-                      setErr("");
-                    }}
-                    style={{
-                      flexShrink: 0,
-                      border: `1px solid ${selectedRecipient === name ? (darkMode ? "#E7D9C9" : C.primary) : (darkMode ? "rgba(255,255,255,0.14)" : "rgba(107,79,59,0.2)")}`,
-                      background: selectedRecipient === name
-                        ? (darkMode ? "rgba(255,255,255,0.1)" : "rgba(90,70,52,0.08)")
-                        : "transparent",
-                      color: selectedRecipient === name ? (darkMode ? "#F2E7DA" : C.primary) : (darkMode ? "#C4A882" : C.secondary),
-                      borderRadius: 999,
-                      padding: "6px 10px",
-                      cursor: "pointer",
-                      fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {!selectedRecipient && (
+            <p style={{ textAlign: "center", color: darkMode ? "#8D7769" : C.muted, fontSize: 13, fontFamily: '"IBM Plex Sans", system-ui, sans-serif' }}>
+              Choose a recipient first.
+            </p>
+          )}
         </div>
 
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createUserWithEmailAndPassword, deleteUser, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { collection, doc, getDocs, limit, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 import { C } from "../../constants";
 import { auth, db, ensureAuthPersistence } from "../../firebase";
@@ -8,11 +8,40 @@ import { CoffeeStain } from "../../components/Decor";
 export default function AuthPage({ setView, setUsername, isLogin, darkMode }) {
   const [form, setForm] = useState({ email: "", username: "", password: "", confirmPassword: "" });
   const [err, setErr] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [usernameSuggestions, setUsernameSuggestions] = useState([]);
+
+  const normalizeUsername = (value) => value.trim().toLowerCase();
+  const sanitizeUsername = (value) => normalizeUsername(value).replace(/[^a-z0-9._-]/g, "");
+
+  const suggestUsernames = async (base) => {
+    const stemBase = sanitizeUsername(base).slice(0, 16) || "user";
+    const candidates = new Set();
+    for (let i = 0; i < 8 && candidates.size < 6; i += 1) {
+      const n1 = Math.floor(100 + Math.random() * 900);
+      const n2 = Math.floor(10 + Math.random() * 90);
+      const n3 = Math.floor(1000 + Math.random() * 9000);
+      [String(n1), `_${n2}`, String(n3)].forEach((suffix) => {
+        const next = `${stemBase}${suffix}`.slice(0, 20);
+        if (next.length >= 3) candidates.add(next);
+      });
+    }
+
+    const list = Array.from(candidates);
+    if (!list.length) return [];
+    try {
+      const snap = await getDocs(query(collection(db, "users"), where("username", "in", list), limit(10)));
+      const taken = new Set(snap.docs.map((d) => d.data().username));
+      return list.filter((name) => !taken.has(name)).slice(0, 3);
+    } catch {
+      return [];
+    }
+  };
 
   const handle = async () => {
     const email = form.email.trim().toLowerCase();
-    const username = form.username.trim().toLowerCase();
+    const username = normalizeUsername(form.username);
     if (!email || !form.password) return setErr("Please fill in all fields");
     if (!/^\S+@\S+\.\S+$/.test(email)) return setErr("Enter a valid email address");
     if (!isLogin && !username) return setErr("Please choose a username");
@@ -26,6 +55,7 @@ export default function AuthPage({ setView, setUsername, isLogin, darkMode }) {
     }
 
     setErr("");
+    setInfo("");
     setLoading(true);
     try {
       await ensureAuthPersistence();
@@ -39,22 +69,18 @@ export default function AuthPage({ setView, setUsername, isLogin, darkMode }) {
           resolvedUsername = credential.user.displayName;
         }
       } else {
-        const credential = await createUserWithEmailAndPassword(auth, email, form.password);
-
         const existing = await getDocs(
           query(collection(db, "users"), where("username", "==", username), limit(1))
         );
-        const takenByOther = existing.docs.some((d) => d.id !== credential.user.uid);
+        const takenByOther = existing.docs.length > 0;
         if (takenByOther) {
-          try {
-            await deleteUser(credential.user);
-          } catch {
-            // best-effort rollback if username is already claimed
-          }
+          const suggestions = await suggestUsernames(username);
+          setUsernameSuggestions(suggestions);
           setErr("That username is already taken");
           return;
         }
 
+        const credential = await createUserWithEmailAndPassword(auth, email, form.password);
         await updateProfile(credential.user, { displayName: username });
         await setDoc(doc(db, "users", credential.user.uid), {
           username,
@@ -81,6 +107,40 @@ export default function AuthPage({ setView, setUsername, isLogin, darkMode }) {
         setErr("Firestore permission denied. Check your Firestore rules");
       } else {
         setErr("Unable to sign in. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const email = form.email.trim().toLowerCase();
+    if (!email) {
+      setErr("Enter your email to reset your password");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setErr("Enter a valid email address");
+      return;
+    }
+    if (!auth) {
+      setErr("Auth is not configured");
+      return;
+    }
+    setErr("");
+    setInfo("");
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setInfo("Password reset link sent. Check your inbox.");
+    } catch (error) {
+      const code = error?.code || "";
+      if (code.includes("auth/user-not-found")) {
+        setErr("No account found for that email");
+      } else if (code.includes("auth/too-many-requests")) {
+        setErr("Too many attempts. Try again later.");
+      } else {
+        setErr("Could not send reset email. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -176,7 +236,11 @@ export default function AuthPage({ setView, setUsername, isLogin, darkMode }) {
             type="email"
             placeholder="Email"
             value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            onChange={(e) => {
+              setForm((f) => ({ ...f, email: e.target.value }));
+              setErr("");
+              setInfo("");
+            }}
             style={{ background: darkMode ? "#1C1208" : C.paper, color: darkMode ? "#EDE0D4" : C.accent }}
           />
 
@@ -185,7 +249,12 @@ export default function AuthPage({ setView, setUsername, isLogin, darkMode }) {
               className="input-field"
               placeholder="Username"
               value={form.username}
-              onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, username: e.target.value }));
+                setUsernameSuggestions([]);
+                setErr("");
+                setInfo("");
+              }}
               style={{ background: darkMode ? "#1C1208" : C.paper, color: darkMode ? "#EDE0D4" : C.accent }}
             />
           )}
@@ -205,16 +274,60 @@ export default function AuthPage({ setView, setUsername, isLogin, darkMode }) {
               type="password"
               placeholder="Confirm password"
               value={form.confirmPassword}
-              onChange={(e) => setForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, confirmPassword: e.target.value }));
+                setErr("");
+                setInfo("");
+              }}
               style={{ background: darkMode ? "#1C1208" : C.paper, color: darkMode ? "#EDE0D4" : C.accent }}
             />
           )}
 
+          {!isLogin && usernameSuggestions.length > 0 && (
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+              {usernameSuggestions.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => {
+                    setForm((f) => ({ ...f, username: name }));
+                    setUsernameSuggestions([]);
+                    setErr("");
+                    setInfo("");
+                  }}
+                  style={{
+                    borderRadius: 999,
+                    padding: "6px 10px",
+                    border: `1px solid ${darkMode ? "rgba(255,255,255,0.16)" : "rgba(107,79,59,0.2)"}`,
+                    background: darkMode ? "rgba(255,255,255,0.06)" : "rgba(255,251,244,0.7)",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    color: darkMode ? "#EDE0D4" : C.primary,
+                  }}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
+
           {err && <p style={{ color: C.seal, fontSize: 14, textAlign: "center" }}>{err}</p>}
+          {info && <p style={{ color: darkMode ? "#E7C79D" : C.primary, fontSize: 14, textAlign: "center" }}>{info}</p>}
 
           <button className="paper-btn" onClick={handle} disabled={loading} style={{ opacity: loading ? 0.7 : 1 }}>
             {loading ? (isLogin ? "Signing in..." : "Creating postbox...") : isLogin ? "Open my postbox" : "Create postbox"}
           </button>
+
+          {isLogin && (
+            <button
+              type="button"
+              onClick={handleResetPassword}
+              style={{ background: "none", border: "none", color: C.primary, cursor: "pointer", textDecoration: "underline" }}
+            >
+              Forgot password?
+            </button>
+          )}
 
           <p style={{ textAlign: "center", fontSize: 14, color: C.muted }}>
             {isLogin ? "New here? " : "Already have one? "}

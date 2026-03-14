@@ -237,16 +237,6 @@ export default function ShareModal({ username, message, onClose, darkMode }) {
       }, "image/png");
     });
 
-  const canNativeShareFile = async () => {
-    try {
-      if (!navigator.share || !navigator.canShare) return false;
-      const file = await canvasToFile();
-      return navigator.canShare({ files: [file] });
-    } catch {
-      return false;
-    }
-  };
-
   const download = () => {
     if (!canvasRef.current) return;
     const link = document.createElement("a");
@@ -276,16 +266,11 @@ export default function ShareModal({ username, message, onClose, darkMode }) {
     }
   };
 
-  const fallbackDownload = (platform) => {
-    download();
-    setStatus(`Downloaded full-size PNG. Upload it to ${platform} Story from your gallery/photos.`);
-  };
-
   const shareToInstagramStory = async () => {
     window.open("https://www.instagram.com/create/story/", "_blank", "noopener,noreferrer");
     const shared = await nativeShare();
     if (!shared) {
-      setStatus("Instagram Story opened. If media is not prefilled, use 'Share via device' or 'Download letter image'.");
+      setStatus("Instagram Story opened. If media is not prefilled, use 'Download letter image'.");
     }
   };
 
@@ -293,19 +278,7 @@ export default function ShareModal({ username, message, onClose, darkMode }) {
     window.open("https://www.facebook.com/stories/create/", "_blank", "noopener,noreferrer");
     const shared = await nativeShare();
     if (!shared) {
-      setStatus("Facebook Story opened. If media is not prefilled, use 'Share via device' or 'Download letter image'.");
-    }
-  };
-
-  const shareViaDevice = async () => {
-    const shared = await nativeShare();
-    if (!shared) {
-      const canShare = await canNativeShareFile();
-      if (!canShare) {
-        fallbackDownload("your app");
-      } else {
-        setStatus("Share canceled.");
-      }
+      setStatus("Facebook Story opened. If media is not prefilled, use 'Download letter image'.");
     }
   };
 
@@ -387,7 +360,6 @@ export default function ShareModal({ username, message, onClose, darkMode }) {
         <div style={{ display: "grid", gap: 10 }}>
           <button className="paper-btn" onClick={shareToInstagramStory} style={{ width: "100%", borderRadius: 11 }}>Instagram Story</button>
           <button className="paper-btn" onClick={shareToFacebookStory} style={{ width: "100%", borderRadius: 11, background: darkMode ? "#7E5D45" : "#816049" }}>Facebook Story</button>
-          <button className="ghost-btn" onClick={shareViaDevice} style={{ width: "100%", borderRadius: 11 }}>Share via device</button>
           <button className="ghost-btn" onClick={download} style={{ width: "100%", borderRadius: 11 }}>Download letter image</button>
         </div>
         {status && <p style={{ color: C.muted, fontSize: 12, marginTop: 12, textAlign: "center" }}>{status}</p>}
