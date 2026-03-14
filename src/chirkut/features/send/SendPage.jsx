@@ -5,6 +5,11 @@ import { db } from "../../firebase";
 import { getLetterTexture } from "../../letterTheme";
 const NO_MARGIN_TEMPLATES = new Set(["coffee", "canvas", "retro", "midnight"]);
 
+function formatSignatureLine(signature) {
+  const cleaned = (signature || "anonymous").toString().trim().replace(/^[-~\s]+/, "");
+  return `- ${cleaned || "anonymous"}`;
+}
+
 const SWATCH_BG = {
   classic: "#FFFDF8",
   coffee: "linear-gradient(160deg,#EDE0C4,#E0CFA8)",
@@ -482,7 +487,7 @@ export default function SendPage({ currentUsername, presetRecipient, darkMode })
           </p>
           {sig && (
             <p style={{ marginTop: 16, fontFamily: fnt.family, fontStyle: "italic", fontSize: 12, color: tpl.sign, textAlign: "right", position: "relative", zIndex: 1 }}>
-              {sig}
+              {formatSignatureLine(sig)}
             </p>
           )}
         </div>
@@ -656,7 +661,7 @@ export default function SendPage({ currentUsername, presetRecipient, darkMode })
           </div>
 
           <input
-            placeholder="Optional signature  (e.g. ~ a friend)"
+            placeholder="Optional signature  (e.g. - a friend)"
             value={sig}
             onChange={(e) => setSig(e.target.value)}
             maxLength={60}

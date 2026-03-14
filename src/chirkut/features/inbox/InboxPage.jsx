@@ -24,6 +24,11 @@ const pill = (active, dark) => ({
   letterSpacing: "0.01em",
 });
 
+function formatSignatureLine(signature) {
+  const cleaned = (signature || "anonymous").toString().trim().replace(/^[-~\s]+/, "");
+  return `- ${cleaned || "anonymous"}`;
+}
+
 export default function InboxPage({ username, messages, darkMode }) {
   const [openMsg, setOpenMsg] = useState(null);
   const [shareMsg, setShareMsg] = useState(null);
@@ -141,7 +146,7 @@ export default function InboxPage({ username, messages, darkMode }) {
                     {new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                   </span>
                   <span style={{ fontSize: 12, fontStyle: "italic", color: sigColor, maxWidth: "60%", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {msg.optional_signature || "~ anonymous"}
+                    {formatSignatureLine(msg.optional_signature)}
                   </span>
                 </div>
               </div>

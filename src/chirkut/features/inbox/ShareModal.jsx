@@ -93,6 +93,11 @@ function drawCoffeeStains(ctx, cardX, cardY, cardW, cardH, seed) {
   ctx.restore();
 }
 
+function formatSignatureLine(signature) {
+  const cleaned = (signature || "anonymous").toString().trim().replace(/^[-~\s]+/, "");
+  return `- ${cleaned || "anonymous"}`;
+}
+
 export default function ShareModal({ username, message, onClose, darkMode }) {
   const canvasRef = useRef(null);
   const [previewSrc, setPreviewSrc] = useState("");
@@ -139,7 +144,7 @@ export default function ShareModal({ username, message, onClose, darkMode }) {
     const marginRight = 120;
     const topPad = 160;
     const bottomPad = 110;
-    const signature = message.optional_signature || "~ anonymous";
+    const signature = formatSignatureLine(message.optional_signature);
     const messageText = message.message_text || "";
     const maxTextWidth = cardW - marginLeft - marginRight;
 
@@ -279,13 +284,17 @@ export default function ShareModal({ username, message, onClose, darkMode }) {
   const shareToInstagramStory = async () => {
     window.open("https://www.instagram.com/create/story/", "_blank", "noopener,noreferrer");
     const shared = await nativeShare();
-    if (!shared) fallbackDownload("Instagram");
+    if (!shared) {
+      setStatus("Instagram Story opened. If media is not prefilled, use 'Share via device' or 'Download letter image'.");
+    }
   };
 
   const shareToFacebookStory = async () => {
     window.open("https://www.facebook.com/stories/create/", "_blank", "noopener,noreferrer");
     const shared = await nativeShare();
-    if (!shared) fallbackDownload("Facebook");
+    if (!shared) {
+      setStatus("Facebook Story opened. If media is not prefilled, use 'Share via device' or 'Download letter image'.");
+    }
   };
 
   const shareViaDevice = async () => {

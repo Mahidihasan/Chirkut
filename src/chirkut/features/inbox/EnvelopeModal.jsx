@@ -13,6 +13,11 @@ function hashToUnit(seed) {
   return ((h >>> 0) % 10000) / 10000;
 }
 
+function formatSignatureLine(signature) {
+  const cleaned = (signature || "anonymous").toString().trim().replace(/^[-~\s]+/, "");
+  return `- ${cleaned || "anonymous"}`;
+}
+
 export default function EnvelopeModal({ message, onClose, onShare, darkMode }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -143,7 +148,7 @@ export default function EnvelopeModal({ message, onClose, onShare, darkMode }) {
               )}
               <div className="letter-content">
                 <p className="body">{renderBody()}</p>
-                <p className="sign">{message.optional_signature || "~ anonymous"}</p>
+                <p className="sign">{formatSignatureLine(message.optional_signature)}</p>
               </div>
             </div>
 
