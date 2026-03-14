@@ -1,0 +1,82 @@
+export const C = {
+  bg: "#F7F3EE",
+  primary: "#5C4A3A",
+  secondary: "#7C6452",
+  accent: "#35281E",
+  paper: "#FFFCF6",
+  kraft: "#CDBA9E",
+  seal: "#8B3A2B",
+  light: "#EFE7DD",
+  muted: "#B8A692",
+};
+
+// ── Letter templates ──────────────────────────────────────────────────────────
+export const LETTER_TEMPLATES = [
+  {
+    id: "classic",
+    name: "Classic",
+    desc: "Warm cream paper",
+    swatch: "#FFFDF8",
+    letterBg: "#FFFDF8",
+    letterBorder: "rgba(198,159,122,0.5)",
+    ink: "#4A3728",
+    sign: "#7a5840",
+    rule: "rgba(160,130,100,0.1)",
+    guide: "rgba(210,100,100,0.2)",
+  },
+  {
+    id: "coffee",
+    name: "Coffee",
+    desc: "Worn & aged",
+    swatch: "#E8D5B0",
+    letterBg: "linear-gradient(160deg,#EEE1C8 0%,#E4D2AE 58%,#D9C39B 100%)",
+    letterBorder: "rgba(139,100,60,0.7)",
+    ink: "#3D2B1F",
+    sign: "#6B4226",
+    rule: "rgba(0,0,0,0)",
+    guide: "rgba(0,0,0,0)",
+  },
+  {
+    id: "canvas",
+    name: "Canvas",
+    desc: "Raw texture",
+    swatch: "#DDD3C0",
+    letterBg: "linear-gradient(170deg,#E6DCCA 0%,#DBD0BE 58%,#D2C6B4 100%)",
+    letterBorder: "rgba(120,100,80,0.55)",
+    ink: "#2E2416",
+    sign: "#5C4A35",
+    rule: "rgba(0,0,0,0)",
+    guide: "rgba(0,0,0,0)",
+  },
+  {
+    id: "retro",
+    name: "Retro",
+    desc: "Burnt pager memo",
+    swatch: "#F0EAD8",
+    letterBg: "linear-gradient(180deg,#F4EEDB 0%,#ECE3C7 56%,#E1D6B6 100%)",
+    letterBorder: "rgba(80,80,60,0.4)",
+    ink: "#1A1A0A",
+    sign: "#4A4A2A",
+    rule: "rgba(0,0,0,0)",
+    guide: "rgba(0,0,0,0)",
+  },
+  {
+    id: "midnight",
+    name: "Midnight",
+    desc: "Dark & moody",
+    swatch: "#1A1E2E",
+    letterBg: "linear-gradient(160deg,#1E2234 0%,#161A28 100%)",
+    letterBorder: "rgba(80,100,200,0.5)",
+    ink: "#C8D4EE",
+    sign: "#8096C4",
+    rule: "rgba(100,120,200,0.12)",
+    guide: "rgba(100,100,220,0.22)",
+  },
+];
+
+// ── Letter fonts ──────────────────────────────────────────────────────────────
+export const LETTER_FONTS = [
+  { id: "handwriting", name: "Handwriting", family: "'Kalam', 'Caveat', cursive" },
+  { id: "cozy",        name: "Cozy",        family: "'Fraunces', Georgia, serif" },
+  { id: "animated",   name: "Animated",    family: "'Caveat', cursive" },
+];
